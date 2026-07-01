@@ -1,0 +1,292 @@
+{
+  "version": "4.0",
+  "table": "SKB",
+  "description": "Company-code level GL account master (SKB). Three-way comparison: COA-side (COA Master + CC-Matrix) vs FAQ (SAP) vs DataPool. v4.0: regenerated from SKA_and_SKB_mapping_4.xlsx — only attributes with mappings in all three sources. 12 fields. v4.0 from SKA_and_SKB_mapping_4.xlsx.",
+  "comparison_grain": "account_company_code",
+  "sources": [
+    "COA",
+    "FAQ",
+    "DataPool"
+  ],
+  "reference_files": {
+    "COA_MASTER": {
+      "label": "Common CoA Working File",
+      "sheet_index": 0,
+      "header_row": 0,
+      "account_key_col": "cCoA  Account Number\nCHK_KEY",
+      "account_key_col_index": 1
+    },
+    "CC_MATRIX": {
+      "label": "CC-Matrix SERE",
+      "data_sheet": "20260309",
+      "attribute_header_row": 4,
+      "account_key_col": "cCoA Account number",
+      "account_key_col_index": 1,
+      "company_code_header_row": 1,
+      "company_code_col_start": "AH",
+      "company_code_col_end": "AR",
+      "company_code_col_start_index": 33,
+      "company_code_col_end_index": 43,
+      "active_flag_value": "X",
+      "known_company_codes": [
+        "0DE1",
+        "0IT1",
+        "0SG1",
+        "0SG2",
+        "0CH1",
+        "0IE3",
+        "0AT1",
+        "0IE1",
+        "0IE2",
+        "0US1",
+        "0DE2"
+      ],
+      "override_sheet": {
+        "name": "Different Setting per CoCo",
+        "account_key_row": 2,
+        "account_key_col": 0,
+        "company_code_row": 0,
+        "company_code_col_start": 1,
+        "attribute_name_row": 2,
+        "attribute_name_col_start": 1
+      }
+    }
+  },
+  "field_types": {
+    "coa_lookup": "COA value from direct column lookup in COA_MASTER.",
+    "coa_derived": "COA value computed from COA_MASTER columns using a rule.",
+    "cc_matrix_lookup": "COA value from CC_MATRIX attribute column, with optional per-(account, company_code) override.",
+    "dimension": "company_code — derived from CC_MATRIX active flag expansion (X in cols AH–AR)."
+  },
+  "key_fields": {
+    "COA": [
+      "g_l_account",
+      "company_code"
+    ],
+    "FAQ": [
+      "G/L Account",
+      "Company Code"
+    ],
+    "DataPool": [
+      "gl_account_number",
+      "company_code"
+    ]
+  },
+  "fields": [
+    {
+      "canonical": "gl_account_number",
+      "label": "G/L Account",
+      "type": "coa_lookup",
+      "is_key": true,
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "COA_MASTER",
+          "column": "CHK_KEY",
+          "column_index": null
+        },
+        "FAQ": "G/L Account",
+        "DataPool": "gl_account_number"
+      }
+    },
+    {
+      "canonical": "company_code",
+      "label": "Company Code",
+      "type": "dimension",
+      "is_key": true,
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "CC_MATRIX",
+          "mode": "active_company_codes",
+          "description": "One row per company code column (AH–AR) that contains X for this account.",
+          "flag_cols_start": "AH",
+          "flag_cols_end": "AR",
+          "flag_value": "X"
+        },
+        "FAQ": "Company Code",
+        "DataPool": "company_code"
+      }
+    },
+    {
+      "canonical": "authorization_group",
+      "label": "Authorization Group",
+      "type": "coa_derived",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "COA_MASTER",
+          "derivation": {
+            "rule": "if_else_chain",
+            "description": "Step 1: read OE-specific column for the selected OE (SERE=OE Specific AZ Se/Re, France=OE Specific AZ FR, Italy=OE Specific AZ IT, Swiss=OE Specific AZ CH, Wave0=OE Specific W0, Verbund=OE Specific AZiD, BNL=OE Specific AZ BNL). GL → empty; FPG → ZFPG. Step 2 (OE col empty): Closed in FPG=X → ZFPG; Closed in G/L=X → empty. Else empty. Else empty.",
+            "oe_specific_cols": {
+              "SERE": "OE Specific AZ Se / Re",
+              "France": "OE Specific AZ FR",
+              "Italy": "OE Specific AZ IT",
+              "Swiss": "OE Specific AZ CH",
+              "Wave0": "OE Specific W0",
+              "Verbund": "OE Specific AZiD",
+              "BNL": "OE Specific AZ BNL"
+            },
+            "conditions": [
+              {
+                "source_col": "Closed in FPG",
+                "match_value": "X",
+                "result": "ZFPG"
+              },
+              {
+                "source_col": "Closed in G/L",
+                "match_value": "X",
+                "result": ""
+              }
+            ],
+            "default": ""
+          }
+        },
+        "FAQ": "Authorization Group",
+        "DataPool": "authorization_group"
+      }
+    },
+    {
+      "canonical": "indicator_is_account_blocked_for_posting",
+      "label": "Blocked for Posting",
+      "type": "coa_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "COA_MASTER",
+          "column": "Marked for deletion (ALL SYSTEMS)",
+          "column_index": null
+        },
+        "FAQ": "Blocked for Posting",
+        "DataPool": "indicator_is_account_blocked_for_posting"
+      },
+      "note": "COA source: 'Marked for deletion (ALL SYSTEMS)' — X means blocked"
+    },
+    {
+      "canonical": "field_status_group_harmonized",
+      "label": "Field Status Group",
+      "type": "coa_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "COA_MASTER",
+          "column": "Field Status Group (Harmonized)",
+          "column_index": null
+        },
+        "FAQ": "Field Status Group",
+        "DataPool": "field_status_group_harmonized"
+      }
+    },
+    {
+      "canonical": "indicator_account_marked_for_deletion",
+      "label": "Marked for Deletion",
+      "type": "coa_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "COA_MASTER",
+          "column": "Marked for deletion (ALL SYSTEMS)",
+          "column_index": null
+        },
+        "FAQ": "Marked for Deletion",
+        "DataPool": "indicator_account_marked_for_deletion"
+      }
+    },
+    {
+      "canonical": "open_item_management",
+      "label": "Open Item Management",
+      "type": "cc_matrix_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "CC_MATRIX",
+          "column": "Open Item Management",
+          "column_index": null,
+          "has_coco_override": true,
+          "override_attribute": "Open Item Management"
+        },
+        "FAQ": "Open Item Management",
+        "DataPool": "open_item_management"
+      }
+    },
+    {
+      "canonical": "open_item_management_by_ledger_group",
+      "label": "Open Item Mgmt by Ledger Group",
+      "type": "cc_matrix_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "CC_MATRIX",
+          "column": "Open Item Management by Ledger Group",
+          "column_index": null,
+          "has_coco_override": false
+        },
+        "FAQ": "Open Item Mgmt by Ledger Group",
+        "DataPool": "open_item_management_by_ledger_group"
+      }
+    },
+    {
+      "canonical": "posting_without_tax_allowed",
+      "label": "Posting Without Tax Allowed",
+      "type": "cc_matrix_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "CC_MATRIX",
+          "column": "Posting Without tax allowed",
+          "column_index": null,
+          "has_coco_override": false
+        },
+        "FAQ": "Posting Without Tax Allowed",
+        "DataPool": "posting_without_tax_allowed"
+      }
+    },
+    {
+      "canonical": "account_is_reconciliation_account",
+      "label": "Recon. Account for Account Type",
+      "type": "coa_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "COA_MASTER",
+          "column": "Reconciliation Account for Account Group",
+          "column_index": null
+        },
+        "FAQ": "Recon. Account for Account Type",
+        "DataPool": "account_is_reconciliation_account"
+      }
+    },
+    {
+      "canonical": "sort_key",
+      "label": "Sort Key",
+      "type": "coa_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "COA_MASTER",
+          "column": "Sort key (Harmonized)",
+          "column_index": null
+        },
+        "FAQ": "Sort Key",
+        "DataPool": "sort_key"
+      }
+    },
+    {
+      "canonical": "tax_category_in_account_master_record",
+      "label": "Tax Category",
+      "type": "cc_matrix_lookup",
+      "comparison_rule": "exact",
+      "sources": {
+        "COA": {
+          "file": "CC_MATRIX",
+          "column": "Tax Category",
+          "column_index": null,
+          "has_coco_override": false
+        },
+        "FAQ": "Tax Category",
+        "DataPool": "tax_category_in_account_master_record"
+      }
+    }
+  ]
+}
