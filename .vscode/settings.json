@@ -1,0 +1,22 @@
+{
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.formatOnSave": false,
+  "editor.wordWrap": "on",
+  "files.associations": {
+    "*.js": "javascript"
+  },
+  "javascript.validate.enable": false,
+  "js/ts.implicitProjectConfig.checkJs": false,
+  "liveServer.settings.port": 8787,
+  "liveServer.settings.root": "/",
+  "liveServer.settings.file": "index.html",
+  "search.exclude": {
+    "node_modules": true,
+    "*.min.js": true
+  },
+  "files.exclude": {
+    "**/_*.js": false,
+    "**/_*.html": false
+  }
+}
