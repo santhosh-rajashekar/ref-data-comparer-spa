@@ -1,0 +1,16 @@
+# Node
+node_modules/
+
+# Scratch files from extraction (not needed in repo)
+_full.js
+_body.html
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
